@@ -40,29 +40,29 @@ jobs:
 
       - name: Update README with Worship Meter
         run: |
-          # Create sexy section in README
-          section_header="## 💜 My Devotion to Mommy Beidou"
-          section_divider="<div align=\"center\">"
-          section_content="$(cat generated/worship_meter.md)"
-          section_footer="</div>"
+          # Define start and end markers for the replaceable section
+          start_marker="> If I miss a day, I owe her 10 cuddles and a foot massage. No exceptions."
+          end_marker="```"
           
-          # Create temporary file with new section
-          echo -e "${section_header}\n${section_divider}\n${section_content}\n${section_footer}" > temp_section.md
+          # Create the new worship meter content
+          new_content="$(cat generated/worship_meter.md)"
           
-          # Replace existing section in README or add new section
-          if grep -q "💜 My Devotion to Mommy Beidou" README.md; then
-            # Replace existing section including code block
-            sed -i '/💜 My Devotion to Mommy Beidou/,/<\/div>/ {
-                /💜 My Devotion to Mommy Beidou/ {
-                    r temp_section.md
-                    d
-                }
-                d
-            }' README.md
-          else
-            # Add new section at the top with code block
-            echo -e "$(cat temp_section.md)\n\n$(cat README.md)" > README.md
-          fi
+          # Create a temporary file with the new content
+          echo "$new_content" > temp_section.md
+          
+          # Replace only the specific section between markers
+          awk -v new="$(cat temp_section.md)" '
+            /'"$start_marker"'/ { 
+                print; 
+                print new; 
+                skip=1; 
+                next 
+            } 
+            skip && /'"$end_marker"'$/ { 
+                skip=0; 
+                next 
+            } 
+            !skip' README.md > README.tmp && mv README.tmp README.md
           
           rm temp_section.md
 
