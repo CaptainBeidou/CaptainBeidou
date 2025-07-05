@@ -115,7 +115,7 @@ def main():
         print(f"Error fetching contributions: {str(e)}")
         os.makedirs("generated", exist_ok=True)
         with open("generated/worship_meter.md", "w", encoding="utf-8") as f:
-            f.write(f"# ⚡ Monthly Devotion Meter\n\nError: {str(e)}\n\nGenerated at {timestamp}")
+            f.write(f"> If I miss a day, I owe her 10 cuddles and a foot massage. No exceptions.\n\n```\nError: {str(e)}\n```")
         return
 
     # Count days with contributions this month
@@ -136,8 +136,10 @@ def main():
     tier = get_tier(devotion_percentage)
     progress_bar = render_progress_bar(devotion_percentage)
 
-    # Add timestamp to ensure unique content
-    text_output = f"""```
+    # Create text output with your specific format
+    text_output = f"""> If I miss a day, I owe her 10 cuddles and a foot massage. No exceptions.
+
+```
 [Month]        {today.strftime('%B %Y')}
 [Devotion]     [{progress_bar}] {devotion_percentage:.1f}%
 [Tier]         {tier}
@@ -145,8 +147,7 @@ def main():
 [Today]        {today.strftime('%Y-%m-%d')}
 [Days So Far]  {days_so_far} of {total_days_in_month}
 [Missed Days]  {missed_days} ({missed_days * 10} cuddles~)
-```
-"""
+```"""
 
     os.makedirs("generated", exist_ok=True)
     with open("generated/worship_meter.md", "w", encoding="utf-8") as f:
