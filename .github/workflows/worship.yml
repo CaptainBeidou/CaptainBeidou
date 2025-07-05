@@ -1,0 +1,33 @@
+name: Update Worship Meter
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  update-worship-meter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: pip install PyGithub
+
+      - name: Generate Worship Meter SVG
+        run: |
+          python scripts/generate_worship_meter.py
+
+      - name: Commit and Push SVG
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add generated/worship_meter.svg
+          git commit -m 'update: 🛐 Worship Meter SVG'
+          git push
