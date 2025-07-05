@@ -1,6 +1,7 @@
 import os
 import requests
 import datetime
+from datetime import timezone
 
 # 💜 Worship Config
 USERNAME = "CaptainBeidou"
@@ -91,9 +92,12 @@ def main():
     if not TOKEN:
         raise ValueError("GITHUB_TOKEN environment variable not set")
     
-    today = datetime.date.today()
+    # Use timezone-aware datetime
+    now_utc = datetime.datetime.now(timezone.utc)
+    today = now_utc.date()
+    timestamp = now_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
+    
     total_days = max((today - START_DATE).days + 1, 1)
-    timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
 
     try:
         contributions = fetch_contributions()
@@ -106,18 +110,13 @@ def main():
 
     # Count days with contributions within the date range
     contribution_days = 0
-    today_iso = today.isoformat()
-    
-    if today_iso in contributions:
-        if contributions[today_iso] > 0:
-            contribution_days += 1
-    else:
-        contributions[today_iso] = 0
-
     current_date = START_DATE
-    while current_date < today:
+    
+    # Iterate through all dates from START_DATE to today (inclusive)
+    while current_date <= today:
         date_iso = current_date.isoformat()
-        if date_iso in contributions and contributions[date_iso] > 0:
+        count = contributions.get(date_iso, 0)
+        if count > 0:
             contribution_days += 1
         current_date += datetime.timedelta(days=1)
 
