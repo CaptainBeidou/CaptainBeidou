@@ -1,6 +1,12 @@
-<svg width="320" height="90" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100%" height="20" fill="#eee" rx="10"/>
-  <rect width="0" height="20" fill="#9333ea" rx="10"/>
-  <text x="10" y="50" font-family="sans-serif" font-size="14" fill="#333">Devotion: 0%</text>
-  <text x="10" y="70" font-family="sans-serif" font-size="16" fill="#9333ea">💧 Deckhand in Denial</text>
+<svg width="300" height="60" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bar { fill: #A78BFA; }
+    .bg { fill: #E5E7EB; }
+    .label { font: bold 14px sans-serif; fill: #4B5563; }
+    .tier { font: italic 12px sans-serif; fill: #6B7280; }
+  </style>
+  <rect class="bg" x="0" y="20" width="300" height="20" rx="10" />
+  <rect class="bar" x="0" y="20" width="0" height="20" rx="10" />
+  <text class="label" x="10" y="15">Worship: 0%</text>
+  <text class="tier" x="10" y="55">💔 **Lost at Sea** – Adrift without my current, begging for just one jolt~</text>
 </svg>
