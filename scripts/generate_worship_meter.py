@@ -3,7 +3,7 @@ import requests
 import datetime
 
 USERNAME = "CaptainBeidou"
-START_DATE = datetime.date(2025, 7, 5)  # Update this to your actual start date
+START_DATE = datetime.date(2025, 7, 5)  # Update to your actual start date
 TOKEN = os.environ.get("GITHUB_TOKEN")
 
 if not TOKEN:
@@ -22,7 +22,6 @@ def fetch_contributions():
       user(login: $login) {
         contributionsCollection(from: $from) {
           contributionCalendar {
-            totalContributions
             weeks {
               contributionDays {
                 date
@@ -45,30 +44,22 @@ def fetch_contributions():
     })
 
     if response.status_code != 200:
-        raise Exception(f"API Error: {response.status_code}\n{response.text}")
+        raise Exception(f"API Error ({response.status_code}): {response.text}")
 
     data = response.json()
     
+    # Check for GraphQL errors
     if "errors" in data:
-        raise Exception(f"GraphQL Error: {data['errors']}")
+        messages = [e["message"] for e in data["errors"]]
+        raise Exception(f"GraphQL Error: {', '.join(messages)}")
+    
+    if "data" not in data:
+        raise Exception(f"No 'data' in response: {data}")
     
     try:
-        weeks = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
+        return data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
     except KeyError:
-        raise Exception("Unexpected response structure", data)
-
-    contributions = {}
-    for week in weeks:
-        for day in week.get("contributionDays", []):
-            date_str = day["date"]
-            try:
-                # Convert to date object for consistent handling
-                date_obj = datetime.date.fromisoformat(date_str)
-                contributions[date_obj] = day["contributionCount"]
-            except ValueError:
-                continue  # Skip invalid dates
-
-    return contributions
+        raise Exception(f"Unexpected response structure: {data}")
 
 def calculate_devotion(contributions):
     today = datetime.date.today()
