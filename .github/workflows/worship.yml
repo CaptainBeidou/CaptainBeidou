@@ -2,7 +2,7 @@ name: Update Worship Meter
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Runs daily at midnight UTC
+    - cron: '50 23 * * *' # Run at 23:50 UTC daily
   push:
     paths:
       - '.github/workflows/worship.yml'
@@ -43,12 +43,31 @@ jobs:
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           
-          # Always add the file
+          # Add the file explicitly
           git add generated/worship_meter.md
           
-          # Always commit with timestamp
-          timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
-          git commit -m "update: 🛐 Worship Meter - $timestamp" || echo "Commit failed (no changes?)"
+          # Check for changes
+          if [ -z "$(git status --porcelain generated/worship_meter.md)" ]; then
+            echo "No changes to commit"
+            exit 0
+          fi
           
-          # Always push
-          git push || echo "Push skipped"
+          # Commit with timestamp
+          timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
+          git commit -m "update: 🛐 Worship Meter - $timestamp"
+          
+          # Push with retry logic
+          attempts=0
+          max_attempts=3
+          until [ $attempts -ge $max_attempts ]
+          do
+            git pull --rebase
+            git push && break
+            attempts=$((attempts+1))
+            sleep 5
+          done
+          
+          if [ $attempts -ge $max_attempts ]; then
+            echo "Push failed after $max_attempts attempts"
+            exit 1
+          fi
