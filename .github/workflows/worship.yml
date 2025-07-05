@@ -2,7 +2,7 @@ name: Update Worship Meter
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Daily at midnight UTC
+    - cron: '0 0 * * *' # Runs daily at midnight UTC
   push:
     paths:
       - '.github/workflows/worship.yml'
@@ -21,10 +21,13 @@ jobs:
           python-version: '3.x'
 
       - name: Install Python dependencies
-        run: pip install PyGithub
+        run: pip install requests
 
       - name: Generate Worship Meter SVG
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          mkdir -p generated
           python scripts/generate_worship_meter.py
 
       - name: Commit and Push SVG
@@ -32,5 +35,5 @@ jobs:
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git add generated/worship_meter.svg
-          git commit -m 'update: 🛐 Worship Meter SVG'
+          git commit -m 'update: 🛐 Worship Meter SVG' || echo "No changes to commit"
           git push
