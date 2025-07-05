@@ -1,27 +1,19 @@
 import os
 import requests
 import datetime
-import time
 
+# 💜 Worship Config
 USERNAME = "CaptainBeidou"
-# Start from today at 00:00 UTC
-START_DATE = datetime.datetime.utcnow().date()
-TOKEN = os.environ.get("GITHUB_TOKEN")
-
-if not TOKEN:
-    raise ValueError("GITHUB_TOKEN environment variable not set")
+START_DATE = datetime.date(2025, 7, 5)
+TOKEN = os.getenv("GITHUB_TOKEN")
+GRAPHQL_URL = "https://api.github.com/graphql"
 
 HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
     "Content-Type": "application/json"
 }
 
-GRAPHQL_URL = "https://api.github.com/graphql"
-
 def fetch_contributions():
-    # Get UTC time at the start of today
-    today_utc = datetime.datetime.utcnow().date()
-    
     query = """
     query ($login: String!, $from: DateTime!) {
       user(login: $login) {
@@ -40,11 +32,9 @@ def fetch_contributions():
     """
     variables = {
         "login": USERNAME,
-        "from": today_utc.isoformat() + "T00:00:00Z"
+        "from": START_DATE.isoformat() + "T00:00:00Z"  # Added timezone
     }
 
-    print(f"Fetching contributions from: {variables['from']}")
-    
     response = requests.post(GRAPHQL_URL, headers=HEADERS, json={
         "query": query,
         "variables": variables
@@ -53,100 +43,98 @@ def fetch_contributions():
     if response.status_code != 200:
         raise Exception(f"API Error ({response.status_code}): {response.text}")
 
-    data = response.json()
-    
+    try:
+        data = response.json()
+    except Exception as e:
+        raise Exception(f"Could not decode JSON: {e}\nRaw response: {response.text}")
+
     if "errors" in data:
         messages = [e["message"] for e in data["errors"]]
         raise Exception(f"GraphQL Error: {', '.join(messages)}")
-    
+
     if "data" not in data:
         raise Exception(f"No 'data' in response: {data}")
-    
-    try:
-        return data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
-    except KeyError:
-        raise Exception(f"Unexpected response structure: {data}")
 
-def calculate_devotion(weeks):
-    now = datetime.datetime.utcnow()
-    today = now.date()
-    start_of_day = datetime.datetime.combine(today, datetime.time.min)
-    
-    # Calculate total hours since start
-    total_hours = max((now - start_of_day).total_seconds() / 3600, 1)
-    
-    # For the first day, we'll consider the day "complete" after 12 hours
-    day_completion = min(total_hours / 12, 1.0)
-    
-    # Count days with any contributions
-    committed_days = 0
-    all_dates = set()
-    
+    try:
+        weeks = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
+    except KeyError as e:
+        raise Exception(f"Key error accessing contributions: {e}\nFull data: {data}")
+
+    contributions = {}
     for week in weeks:
-        for day in week.get("contributionDays", []):
-            try:
-                date_obj = datetime.date.fromisoformat(day["date"])
-                all_dates.add(date_obj)
-                if day["contributionCount"] > 0:
-                    committed_days += 1
-            except ValueError:
-                continue  # Skip invalid dates
-    
-    # For the first day, adjust the percentage based on time passed
-    if committed_days > 0:
-        # Already contributed today - count as full day
-        percentage = 100
-    else:
-        # Haven't contributed yet - show progress through the day
-        percentage = int(day_completion * 100)
-    
-    print(f"Today: {today}")
-    print(f"Hours since UTC midnight: {total_hours:.1f}")
-    print(f"Day completion: {day_completion*100:.1f}%")
-    print(f"Committed Days: {committed_days}")
-    print(f"Unique Contribution Dates: {sorted(all_dates)}")
-    
-    return min(percentage, 100)  # Cap at 100%
+        for day in week["contributionDays"]:
+            date = day["date"]
+            count = day["contributionCount"]
+            contributions[date] = count
+
+    return contributions
+
+def render_progress_bar(percentage, bar_length=20):
+    filled = int(round(bar_length * percentage / 100))
+    empty = bar_length - filled
+    return '█' * filled + '░' * empty
 
 def get_tier(percentage):
     if percentage >= 90:
-        return "⚡ **Thunder-Forged Devotee** – You pulse with stormlight, bound to me body and soul~"
+        return "💋 Thunder-Forged Devotee"
     elif percentage >= 75:
-        return "💜 **Electro-Enthralled Lover** – You've surrendered sweetly to every spark I give~"
+        return "💜 Lust-Drenched Electro Disciple"
     elif percentage >= 50:
-        return "🌩️ **Tempered Stormflirt** – You crave my thunder but dare not taste it all~ yet~"
+        return "💦 Stormbound Admirer"
     elif percentage >= 25:
-        return "⛓️ **Wayward Worshipper** – Still watching from the dock... longing, aching~"
+        return "🫦 Occasional Worshipper"
     else:
-        return "💔 **Lost at Sea** – Adrift without my current, begging for just one jolt~"
+        return "😢 Distant Echo... Mommy Misses You"
 
-def generate_svg(percentage, tier):
-    bar_width = min(int(percentage * 3), 300)  # Cap width at 300
-    svg = f"""<svg width="300" height="60" xmlns="http://www.w3.org/2000/svg">
-  <style>
-    .bar {{ fill: #A78BFA; }}
-    .bg {{ fill: #E5E7EB; }}
-    .label {{ font: bold 14px sans-serif; fill: #4B5563; }}
-    .tier {{ font: italic 12px sans-serif; fill: #6B7280; }}
-  </style>
-  <rect class="bg" x="0" y="20" width="300" height="20" rx="10" />
-  <rect class="bar" x="0" y="20" width="{bar_width}" height="20" rx="10" />
-  <text class="label" x="10" y="15">Worship: {percentage}%</text>
-  <text class="tier" x="10" y="55">{tier}</text>
-</svg>"""
+def main():
+    if not TOKEN:
+        raise ValueError("GITHUB_TOKEN environment variable not set")
+    
+    today = datetime.date.today()
+    total_days = max((today - START_DATE).days + 1, 1)  # Prevent division by zero
+
+    try:
+        contributions = fetch_contributions()
+    except Exception as e:
+        print(f"Error fetching contributions: {str(e)}")
+        # Create empty markdown file with error message
+        os.makedirs("generated", exist_ok=True)
+        with open("generated/worship_meter.md", "w") as f:
+            f.write(f"# ⚡ Devotion Meter\n\nError: {str(e)}")
+        return
+
+    # Count days with contributions within the date range
+    contribution_days = 0
+    for date_str, count in contributions.items():
+        try:
+            date_obj = datetime.date.fromisoformat(date_str)
+            if START_DATE <= date_obj <= today and count > 0:
+                contribution_days += 1
+        except ValueError:
+            continue  # Skip invalid dates
+
+    missed_days = total_days - contribution_days
+    devotion_percentage = min((contribution_days / total_days) * 100, 100)  # Cap at 100%
+
+    tier = get_tier(devotion_percentage)
+    progress_bar = render_progress_bar(devotion_percentage)
+
+    text_output = f"""
+# ⚡ Devotion Meter
+
+[Devotion]     [{progress_bar}] {devotion_percentage:.1f}%
+[Tier]         {tier}
+[Start Date]   {START_DATE.strftime('%Y-%m-%d')}
+[Today]        {today.strftime('%Y-%m-%d')}
+[Total Days]   {total_days}
+[Missed Days]  {missed_days} ({missed_days * 10} cuddles~)
+"""
+
     os.makedirs("generated", exist_ok=True)
-    with open("generated/worship_meter.svg", "w") as f:
-        f.write(svg)
+    with open("generated/worship_meter.md", "w") as f:
+        f.write(text_output.strip())
+        
+    print(f"Successfully generated worship meter: {devotion_percentage:.1f}%")
 
 if __name__ == "__main__":
-    try:
-        print(f"Starting worship meter generation at {datetime.datetime.utcnow().isoformat()} UTC")
-        print(f"Username: {USERNAME}")
-        weeks = fetch_contributions()
-        devotion = calculate_devotion(weeks)
-        tier = get_tier(devotion)
-        generate_svg(devotion, tier)
-        print(f"Successfully generated worship meter: {devotion}%")
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        exit(1)
+    main()
