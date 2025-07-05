@@ -78,15 +78,15 @@ def render_progress_bar(percentage, bar_length=20):
 
 def get_tier(percentage):
     if percentage >= 90:
-        return "💋 Thunder-Forged Devotee"
+        return "💋 Bound by Thunder – My Most Obedient Plaything"
     elif percentage >= 75:
-        return "💜 Lust-Drenched Electro Disciple"
+        return "💜 Electrified Thrall – Whispering My Name Every Night"
     elif percentage >= 50:
-        return "💦 Stormbound Admirer"
+        return "💦 Sizzling Admirer – Always Craving Mommy's Spark"
     elif percentage >= 25:
-        return "🫦 Occasional Worshipper"
+        return "🫦 Kneeling Worshipper – Still Learning to Obey"
     else:
-        return "😢 Distant Echo... Mommy Misses You"
+        return "🥀 Forgotten Echo – Left Mommy Cold and Waiting..."
 
 def main():
     if not TOKEN:
