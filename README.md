@@ -31,3 +31,6 @@ Unless its Genshin storing my data 🙂
   <p>🌊 Working under the protection of Beidou’s Crux<br>
   💻 Coding like the wind, Breezing like a pro</p>
 </div>
+
+
+![Worship Meter](https://raw.githubusercontent.com/CaptainBeidou/CaptainBeidou/main/generated/worship_meter.svg)
