@@ -39,21 +39,25 @@ def fetch_contributions():
         "variables": variables
     })
 
-    if response.status_code != 200:
-        raise Exception(f"GitHub API returned HTTP {response.status_code}: {response.text}")
+    try:
+        data = response.json()
+    except Exception as e:
+        raise Exception(f"Could not decode JSON: {e}\nRaw response: {response.text}")
 
-    data = response.json()
-
+    # Check for GraphQL errors
     if "errors" in data:
-        raise Exception(f"GraphQL error: {data['errors']}")
+        raise Exception(f"GraphQL Error: {data['errors']}")
+
+    if "data" not in data:
+        raise Exception(f"No 'data' in response: {data}")
 
     try:
-        days = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
-    except KeyError:
-        raise Exception(f"Unexpected response structure: {data}")
+        weeks = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
+    except KeyError as e:
+        raise Exception(f"Key error accessing contributions: {e}\nFull data: {data}")
 
     contributions = {}
-    for week in days:
+    for week in weeks:
         for day in week["contributionDays"]:
             date = day["date"]
             count = day["contributionCount"]
