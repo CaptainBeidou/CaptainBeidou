@@ -48,7 +48,6 @@ def fetch_contributions():
 
     data = response.json()
     
-    # Check for GraphQL errors
     if "errors" in data:
         messages = [e["message"] for e in data["errors"]]
         raise Exception(f"GraphQL Error: {', '.join(messages)}")
@@ -57,19 +56,28 @@ def fetch_contributions():
         raise Exception(f"No 'data' in response: {data}")
     
     try:
-        return data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
+        weeks = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
     except KeyError:
         raise Exception(f"Unexpected response structure: {data}")
 
+    contributions = []
+    for week in weeks:
+        for day in week.get("contributionDays", []):
+            contributions.append({
+                "date": datetime.date.fromisoformat(day["date"]),
+                "count": day["contributionCount"]
+            })
+
+    return contributions
+
 def calculate_devotion(contributions):
     today = datetime.date.today()
-    total_days = (today - START_DATE).days + 1
+    total_days = max((today - START_DATE).days + 1, 1)  # Ensure at least 1 day
     
     # Count days with any contributions
-    committed_days = sum(1 for count in contributions.values() if count > 0)
+    committed_days = sum(1 for day in contributions if day["count"] > 0)
     
-    # Ensure we don't divide by zero
-    percentage = int((committed_days / max(total_days, 1)) * 100)
+    percentage = int((committed_days / total_days) * 100)
     return min(percentage, 100)  # Cap at 100%
 
 def get_tier(percentage):
@@ -111,3 +119,4 @@ if __name__ == "__main__":
         print("SVG generated successfully!")
     except Exception as e:
         print(f"Error: {str(e)}")
+        exit(1)  # Exit with error code
