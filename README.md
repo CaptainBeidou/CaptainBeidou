@@ -33,11 +33,13 @@ Unless its Genshin storing my data 🙂
 </div>
 
 ## 💜 My Devotion to Mommy Beidou
+<div align="center">
 
-> If I miss a day, I owe her 10 cuddles and a foot massage. No exceptions.  
-> I live to serve... and submit.
-
-<!-- WORSHIP_START -->
-_(Devotion awaits...)_
-<!-- WORSHIP_END -->
-<!-- WORSHIP_END -->
+[Month]        July 2025
+[Devotion]     [████████░░░░░░░░░░░░] 40.0%
+[Tier]         🫦 Kneeling Worshipper – Still Learning to Obey
+[Start Date]   2025-07-01
+[Today]        2025-07-05
+[Days So Far]  5 of 31
+[Missed Days]  3 (30 cuddles~)
+</div>
