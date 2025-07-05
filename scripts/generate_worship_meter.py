@@ -70,6 +70,8 @@ def fetch_contributions():
     return contributions
 
 def render_progress_bar(percentage, bar_length=20):
+    # Ensure percentage is between 0-100
+    percentage = max(0, min(percentage, 100))
     filled = int(round(bar_length * percentage / 100))
     empty = bar_length - filled
     return '█' * filled + '░' * empty
@@ -99,19 +101,29 @@ def main():
         print(f"Error fetching contributions: {str(e)}")
         # Create empty markdown file with error message
         os.makedirs("generated", exist_ok=True)
-        with open("generated/worship_meter.md", "w") as f:
+        with open("generated/worship_meter.md", "w", encoding="utf-8") as f:
             f.write(f"# ⚡ Devotion Meter\n\nError: {str(e)}")
         return
 
     # Count days with contributions within the date range
     contribution_days = 0
-    for date_str, count in contributions.items():
-        try:
-            date_obj = datetime.date.fromisoformat(date_str)
-            if START_DATE <= date_obj <= today and count > 0:
-                contribution_days += 1
-        except ValueError:
-            continue  # Skip invalid dates
+    today_iso = today.isoformat()
+    
+    # For the current day, we'll count even if no contributions yet
+    if today_iso in contributions:
+        if contributions[today_iso] > 0:
+            contribution_days += 1
+    else:
+        # If today isn't in the response, add it with count 0
+        contributions[today_iso] = 0
+
+    # Count contributions for previous days
+    current_date = START_DATE
+    while current_date < today:
+        date_iso = current_date.isoformat()
+        if date_iso in contributions and contributions[date_iso] > 0:
+            contribution_days += 1
+        current_date += datetime.timedelta(days=1)
 
     missed_days = total_days - contribution_days
     devotion_percentage = min((contribution_days / total_days) * 100, 100)  # Cap at 100%
@@ -119,8 +131,8 @@ def main():
     tier = get_tier(devotion_percentage)
     progress_bar = render_progress_bar(devotion_percentage)
 
-    text_output = f"""
-# ⚡ Devotion Meter
+    # Format with proper line spacing and encoding
+    text_output = f"""# ⚡ Devotion Meter
 
 [Devotion]     [{progress_bar}] {devotion_percentage:.1f}%
 [Tier]         {tier}
@@ -131,7 +143,7 @@ def main():
 """
 
     os.makedirs("generated", exist_ok=True)
-    with open("generated/worship_meter.md", "w") as f:
+    with open("generated/worship_meter.md", "w", encoding="utf-8") as f:
         f.write(text_output.strip())
         
     print(f"Successfully generated worship meter: {devotion_percentage:.1f}%")
