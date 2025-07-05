@@ -31,27 +31,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests
 
-      - name: Generate Worship Meter SVG
+      - name: Generate Worship Meter
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p generated
           python scripts/generate_worship_meter.py
 
-      - name: Commit and Push SVG
+      - name: Commit and Push
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           
-          # Update local branch with remote changes
-          git pull --rebase
+          # Update local branch
+          git pull origin main --rebase
           
-          git add generated/worship_meter.svg
+          git add generated/worship_meter.md
           
-          # Check if there are changes to commit
-          if [ -n "$(git status --porcelain generated/worship_meter.svg)" ]; then
-            git commit -m 'update: 🛐 Worship Meter SVG'
-            git push
-          else
-            echo "No changes to commit"
-          fi
+          # Always commit with timestamp
+          timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
+          git commit -m "update: 🛐 Worship Meter - $timestamp" || echo "No changes to commit"
+          git push || echo "Push skipped"
