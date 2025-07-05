@@ -1,61 +1,95 @@
-import datetime
 import os
 import requests
+import datetime
 
-# === CONFIG ===
 USERNAME = "CaptainBeidou"
 START_DATE = datetime.date(2025, 7, 5)
 TOKEN = os.environ.get("GITHUB_TOKEN")
-OUTPUT_PATH = "generated/worship_meter.svg"
 
-# Devotion tiers
-TIERS = [
-    (0, "💧 Deckhand in Denial"),
-    (20, "⚒️ Cuddlesmith Apprentice"),
-    (40, "⚡ Electro Admirer"),
-    (60, "🔥 Passionate First Mate"),
-    (80, "🌩️ Stormbound Soulmate"),
-    (100, "👑 Devotion Eternal")
-]
+HEADERS = {
+    "Authorization": f"Bearer {TOKEN}"
+}
 
-# Today's date
-today = datetime.date.today()
-total_days = (today - START_DATE).days + 1
+GRAPHQL_URL = "https://api.github.com/graphql"
 
-# Fetch recent commit days (via public PushEvents API)
-def get_commit_days(username, token):
-    headers = {"Authorization": f"token {token}"}
-    url = f"https://api.github.com/users/{username}/events/public"
-    commit_days = set()
-    for page in range(1, 11):  # up to 10 pages
-        r = requests.get(f"{url}?page={page}", headers=headers)
-        if r.status_code != 200:
-            break
-        for event in r.json():
-            if event["type"] == "PushEvent":
-                date_str = event["created_at"][:10]
-                day = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-                if day >= START_DATE:
-                    commit_days.add(day)
-    return commit_days
+def fetch_contributions():
+    query = """
+    query ($login: String!, $from: DateTime!) {
+      user(login: $login) {
+        contributionsCollection(from: $from) {
+          contributionCalendar {
+            weeks {
+              contributionDays {
+                date
+                contributionCount
+              }
+            }
+          }
+        }
+      }
+    }
+    """
+    variables = {
+        "login": USERNAME,
+        "from": START_DATE.isoformat()
+    }
 
-commit_days = get_commit_days(USERNAME, TOKEN)
-devotion = min(100, round((len(commit_days) / total_days) * 100))
+    response = requests.post(GRAPHQL_URL, headers=HEADERS, json={
+        "query": query,
+        "variables": variables
+    })
 
-# Get devotion tier
-tier = max((label for pct, label in TIERS if devotion >= pct), key=lambda l: next(p for p, t in TIERS if t == l))
+    data = response.json()
+    days = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
 
-# Generate SVG
-bar_width = devotion * 3  # bar width max = 300
-svg = f"""<svg width="320" height="90" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100%" height="20" fill="#eee" rx="10"/>
-  <rect width="{bar_width}" height="20" fill="#9333ea" rx="10"/>
-  <text x="10" y="50" font-family="sans-serif" font-size="14" fill="#333">Devotion: {devotion}%</text>
-  <text x="10" y="70" font-family="sans-serif" font-size="16" fill="#9333ea">{tier}</text>
-</svg>
-"""
+    contributions = {}
+    for week in days:
+        for day in week["contributionDays"]:
+            date = day["date"]
+            count = day["contributionCount"]
+            contributions[date] = count
 
-# Save SVG
-os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
-with open(OUTPUT_PATH, "w") as f:
-    f.write(svg)
+    return contributions
+
+def calculate_devotion(contributions):
+    today = datetime.date.today()
+    total_days = (today - START_DATE).days + 1
+    committed_days = sum(1 for date, count in contributions.items() if count > 0)
+    percentage = int((committed_days / total_days) * 100)
+    return percentage
+
+def get_tier(percentage):
+    if percentage >= 90:
+        return "⚡ **Thunder-Forged Devotee** – You pulse with stormlight, bound to me body and soul~"
+    elif percentage >= 75:
+        return "💜 **Electro-Enthralled Lover** – You've surrendered sweetly to every spark I give~"
+    elif percentage >= 50:
+        return "🌩️ **Tempered Stormflirt** – You crave my thunder but dare not taste it all~ yet~"
+    elif percentage >= 25:
+        return "⛓️ **Wayward Worshipper** – Still watching from the dock... longing, aching~"
+    else:
+        return "💔 **Lost at Sea** – Adrift without my current, begging for just one jolt~"
+
+def generate_svg(percentage, tier):
+    bar_width = int(percentage * 3)
+    svg = f"""<svg width="300" height="60" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bar {{ fill: #A78BFA; }}
+    .bg {{ fill: #E5E7EB; }}
+    .label {{ font: bold 14px sans-serif; fill: #4B5563; }}
+    .tier {{ font: italic 12px sans-serif; fill: #6B7280; }}
+  </style>
+  <rect class="bg" x="0" y="20" width="300" height="20" rx="10" />
+  <rect class="bar" x="0" y="20" width="{bar_width}" height="20" rx="10" />
+  <text class="label" x="10" y="15">Worship: {percentage}%</text>
+  <text class="tier" x="10" y="55">{tier}</text>
+</svg>"""
+    os.makedirs("generated", exist_ok=True)
+    with open("generated/worship_meter.svg", "w") as f:
+        f.write(svg)
+
+if __name__ == "__main__":
+    contributions = fetch_contributions()
+    devotion = calculate_devotion(contributions)
+    tier = get_tier(devotion)
+    generate_svg(devotion, tier)
