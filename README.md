@@ -32,5 +32,12 @@ Unless its Genshin storing my data 🙂
   💻 Coding like the wind, Breezing like a pro</p>
 </div>
 
+## 💜 My Devotion to Mommy Beidou
 
-![Worship Meter](https://github.com/CaptainBeidou/CaptainBeidou/blob/main/generated/worship_meter.svg)
+> If I miss a day, I owe her 10 cuddles and a foot massage. No exceptions.  
+> I live to serve... and submit.
+
+<!-- WORSHIP_START -->
+_(Devotion awaits...)_
+<!-- WORSHIP_END -->
+<!-- WORSHIP_END -->
