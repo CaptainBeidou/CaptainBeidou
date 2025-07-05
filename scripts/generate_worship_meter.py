@@ -74,7 +74,7 @@ def calculate_devotion(contributions):
     today = datetime.date.today()
     total_days = max((today - START_DATE).days + 1, 1)  # Ensure at least 1 day
     
-    # Count days with any contributions
+    # FIXED: Iterate directly through the list of contributions
     committed_days = sum(1 for day in contributions if day["count"] > 0)
     
     percentage = int((committed_days / total_days) * 100)
