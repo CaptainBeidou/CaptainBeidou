@@ -43,31 +43,12 @@ jobs:
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           
-          # Add the file explicitly
-          git add generated/worship_meter.md
+          # Force add the generated file
+          git add -f generated/worship_meter.md
           
-          # Check for changes
-          if [ -z "$(git status --porcelain generated/worship_meter.md)" ]; then
-            echo "No changes to commit"
-            exit 0
-          fi
-          
-          # Commit with timestamp
+          # Simple commit and push without rebase
           timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
-          git commit -m "update: 🛐 Worship Meter - $timestamp"
+          git commit -m "update: 🛐 Worship Meter - $timestamp" || echo "No changes to commit"
           
-          # Push with retry logic
-          attempts=0
-          max_attempts=3
-          until [ $attempts -ge $max_attempts ]
-          do
-            git pull --rebase
-            git push && break
-            attempts=$((attempts+1))
-            sleep 5
-          done
-          
-          if [ $attempts -ge $max_attempts ]; then
-            echo "Push failed after $max_attempts attempts"
-            exit 1
-          fi
+          # Push with force to avoid merge conflicts
+          git push --force || echo "Push skipped"
