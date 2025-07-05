@@ -8,20 +8,22 @@ on:
       - '.github/workflows/worship.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write  # Needed to commit SVG updates
+
 jobs:
   update-worship-meter:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for pushing changes back
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
-
-      - name: Install Python dependencies
-        run: pip install requests
+          python-version: '3.12'
 
       - name: Generate Worship Meter SVG
         env:
