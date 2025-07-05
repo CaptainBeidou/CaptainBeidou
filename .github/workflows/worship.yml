@@ -38,17 +38,18 @@ jobs:
           mkdir -p generated
           python scripts/generate_worship_meter.py
 
+      - name: Insert Worship Meter into README
+        run: |
+          sed -i '/<!-- WORSHIP_START -->/,/<!-- WORSHIP_END -->/c\
+          <!-- WORSHIP_START -->\n'"$(cat generated/worship_meter.md)"'\n<!-- WORSHIP_END -->' README.md
+
       - name: Commit and Push
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
-          
-          # Force add the generated file
-          git add -f generated/worship_meter.md
-          
-          # Simple commit and push without rebase
+
+          git add -f generated/worship_meter.md README.md
+
           timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
           git commit -m "update: 🛐 Worship Meter - $timestamp" || echo "No changes to commit"
-          
-          # Push with force to avoid merge conflicts
           git push --force || echo "Push skipped"
