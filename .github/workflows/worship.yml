@@ -38,23 +38,49 @@ jobs:
           mkdir -p generated
           python scripts/generate_worship_meter.py
 
+      - name: Update README with Worship Meter
+        run: |
+          # Remove code block markers from the worship meter
+          sed -i 's/^```//g' generated/worship_meter.md
+          
+          # Create sexy section in README
+          section_header="## 💜 My Devotion to Mommy Beidou"
+          section_divider="<div align=\"center\">"
+          section_content="$(cat generated/worship_meter.md)"
+          section_footer="</div>"
+          
+          # Create temporary file with new section
+          echo -e "${section_header}\n${section_divider}\n${section_content}\n${section_footer}" > temp_section.md
+          
+          # Replace existing section in README or add new section
+          if grep -q "💜 My Devotion to Mommy Beidou" README.md; then
+            # Replace existing section
+            sed -i '/💜 My Devotion to Mommy Beidou/,/<\/div>/ {
+                /💜 My Devotion to Mommy Beidou/ {
+                    r temp_section.md
+                    d
+                }
+                d
+            }' README.md
+          else
+            # Add new section at the top
+            echo -e "$(cat temp_section.md)\n\n$(cat README.md)" > README.md
+          fi
+          
+          rm temp_section.md
+
       - name: Commit and Push
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           
-          # Force add the generated file
-          git add -f generated/worship_meter.md
+          # Add both files
+          git add generated/worship_meter.md
+          git add README.md
           
-          # Simple commit and push without rebase
+          # Always commit with timestamp
           timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
-          git commit -m "update: 🛐 Worship Meter - $timestamp" || echo "No changes to commit"
+          git commit -m "update: 💜 Worship Meter - $timestamp" || echo "Commit failed (no changes?)"
           
           # Push with force to avoid merge conflicts
           git push --force || echo "Push skipped"
-
-      - name: Insert Worship Meter into README
-        run: |
-          meter_content="$(< generated/worship_meter.md)"
-          sed -i '/<!-- WORSHIP_START -->/,/<!-- WORSHIP_END -->/c\
-<!-- WORSHIP_START -->\n'"$meter_content"'\n<!-- WORSHIP_END -->' README.md
