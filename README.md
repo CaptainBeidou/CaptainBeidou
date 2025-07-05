@@ -33,4 +33,4 @@ Unless its Genshin storing my data 🙂
 </div>
 
 
-![Worship Meter](https://raw.githubusercontent.com/CaptainBeidou/CaptainBeidou/main/generated/worship_meter.svg)
+![Worship Meter](https://github.com/CaptainBeidou/CaptainBeidou/blob/main/generated/worship_meter.svg)
