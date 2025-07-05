@@ -39,6 +39,9 @@ def fetch_contributions():
         "variables": variables
     })
 
+    # Print raw text response
+    print("Raw response text:\n", response.text)
+
     try:
         data = response.json()
     except Exception as e:
