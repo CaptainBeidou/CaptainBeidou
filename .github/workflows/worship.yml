@@ -43,12 +43,17 @@ jobs:
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           
+          # Add the generated file to tracking
+          git add -f generated/worship_meter.md
+          
           # Update local branch
-          git pull origin main --rebase
+          git pull origin main --rebase --allow-unrelated-histories
           
-          git add generated/worship_meter.md
-          
-          # Always commit with timestamp
-          timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
-          git commit -m "update: 🛐 Worship Meter - $timestamp" || echo "No changes to commit"
-          git push || echo "Push skipped"
+          # Check if there are changes to commit
+          if [ -n "$(git status --porcelain generated/worship_meter.md)" ]; then
+            timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
+            git commit -m "update: 🛐 Worship Meter - $timestamp"
+            git push
+          else
+            echo "No changes to commit"
+          fi
