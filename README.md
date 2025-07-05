@@ -32,7 +32,7 @@ Unless its Genshin storing my data 🙂
   💻 Coding like the wind, Breezing like a pro</p>
 </div>
 
-## 💜 My Devotion to Mommy Beidou
+## 💜 Beidou Commits
 > If I miss a day, I owe her 10 cuddles and a foot massage. No exceptions.
 
 ```
