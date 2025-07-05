@@ -1,9 +1,11 @@
 import os
 import requests
 import datetime
+import time
 
 USERNAME = "CaptainBeidou"
-START_DATE = datetime.date(2025, 7, 5)  # Update to your actual start date
+# Start from today at 00:00 UTC
+START_DATE = datetime.datetime.utcnow().date()
 TOKEN = os.environ.get("GITHUB_TOKEN")
 
 if not TOKEN:
@@ -17,6 +19,9 @@ HEADERS = {
 GRAPHQL_URL = "https://api.github.com/graphql"
 
 def fetch_contributions():
+    # Get UTC time at the start of today
+    today_utc = datetime.datetime.utcnow().date()
+    
     query = """
     query ($login: String!, $from: DateTime!) {
       user(login: $login) {
@@ -35,9 +40,11 @@ def fetch_contributions():
     """
     variables = {
         "login": USERNAME,
-        "from": START_DATE.isoformat() + "T00:00:00Z"
+        "from": today_utc.isoformat() + "T00:00:00Z"
     }
 
+    print(f"Fetching contributions from: {variables['from']}")
+    
     response = requests.post(GRAPHQL_URL, headers=HEADERS, json={
         "query": query,
         "variables": variables
@@ -56,28 +63,49 @@ def fetch_contributions():
         raise Exception(f"No 'data' in response: {data}")
     
     try:
-        weeks = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
+        return data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
     except KeyError:
         raise Exception(f"Unexpected response structure: {data}")
 
-    contributions = []
+def calculate_devotion(weeks):
+    now = datetime.datetime.utcnow()
+    today = now.date()
+    start_of_day = datetime.datetime.combine(today, datetime.time.min)
+    
+    # Calculate total hours since start
+    total_hours = max((now - start_of_day).total_seconds() / 3600, 1)
+    
+    # For the first day, we'll consider the day "complete" after 12 hours
+    day_completion = min(total_hours / 12, 1.0)
+    
+    # Count days with any contributions
+    committed_days = 0
+    all_dates = set()
+    
     for week in weeks:
         for day in week.get("contributionDays", []):
-            contributions.append({
-                "date": datetime.date.fromisoformat(day["date"]),
-                "count": day["contributionCount"]
-            })
-
-    return contributions
-
-def calculate_devotion(contributions):
-    today = datetime.date.today()
-    total_days = max((today - START_DATE).days + 1, 1)  # Ensure at least 1 day
+            try:
+                date_obj = datetime.date.fromisoformat(day["date"])
+                all_dates.add(date_obj)
+                if day["contributionCount"] > 0:
+                    committed_days += 1
+            except ValueError:
+                continue  # Skip invalid dates
     
-    # FIXED: Iterate directly through the list of contributions
-    committed_days = sum(1 for day in contributions if day["count"] > 0)
+    # For the first day, adjust the percentage based on time passed
+    if committed_days > 0:
+        # Already contributed today - count as full day
+        percentage = 100
+    else:
+        # Haven't contributed yet - show progress through the day
+        percentage = int(day_completion * 100)
     
-    percentage = int((committed_days / total_days) * 100)
+    print(f"Today: {today}")
+    print(f"Hours since UTC midnight: {total_hours:.1f}")
+    print(f"Day completion: {day_completion*100:.1f}%")
+    print(f"Committed Days: {committed_days}")
+    print(f"Unique Contribution Dates: {sorted(all_dates)}")
+    
     return min(percentage, 100)  # Cap at 100%
 
 def get_tier(percentage):
@@ -112,11 +140,13 @@ def generate_svg(percentage, tier):
 
 if __name__ == "__main__":
     try:
-        contributions = fetch_contributions()
-        devotion = calculate_devotion(contributions)
+        print(f"Starting worship meter generation at {datetime.datetime.utcnow().isoformat()} UTC")
+        print(f"Username: {USERNAME}")
+        weeks = fetch_contributions()
+        devotion = calculate_devotion(weeks)
         tier = get_tier(devotion)
         generate_svg(devotion, tier)
-        print("SVG generated successfully!")
+        print(f"Successfully generated worship meter: {devotion}%")
     except Exception as e:
         print(f"Error: {str(e)}")
-        exit(1)  # Exit with error code
+        exit(1)
