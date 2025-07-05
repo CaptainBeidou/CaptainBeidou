@@ -137,23 +137,15 @@ def main():
     progress_bar = render_progress_bar(devotion_percentage)
 
     # Add timestamp to ensure unique content
-    text_output = f"""# ⚡ Monthly Devotion Meter
-
+    text_output = f"""```
 [Month]        {today.strftime('%B %Y')}
-
 [Devotion]     [{progress_bar}] {devotion_percentage:.1f}%
-
 [Tier]         {tier}
-
 [Start Date]   {first_day_of_month.strftime('%Y-%m-%d')}
-
 [Today]        {today.strftime('%Y-%m-%d')}
-
 [Days So Far]  {days_so_far} of {total_days_in_month}
-
 [Missed Days]  {missed_days} ({missed_days * 10} cuddles~)
-
-*Generated at {timestamp}*
+```
 """
 
     os.makedirs("generated", exist_ok=True)
