@@ -2,7 +2,10 @@ name: Update Worship Meter
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Runs daily at midnight UTC
+    - cron: '0 0 * * *' # Daily at midnight UTC
+  push:
+    paths:
+      - '.github/workflows/worship.yml'
   workflow_dispatch:
 
 jobs:
