@@ -3,11 +3,15 @@ import requests
 import datetime
 
 USERNAME = "CaptainBeidou"
-START_DATE = datetime.date(2025, 7, 5)
+START_DATE = datetime.date(2025, 7, 5)  # Update this to your actual start date
 TOKEN = os.environ.get("GITHUB_TOKEN")
 
+if not TOKEN:
+    raise ValueError("GITHUB_TOKEN environment variable not set")
+
 HEADERS = {
-    "Authorization": f"Bearer {TOKEN}"
+    "Authorization": f"Bearer {TOKEN}",
+    "Content-Type": "application/json"
 }
 
 GRAPHQL_URL = "https://api.github.com/graphql"
@@ -18,6 +22,7 @@ def fetch_contributions():
       user(login: $login) {
         contributionsCollection(from: $from) {
           contributionCalendar {
+            totalContributions
             weeks {
               contributionDays {
                 date
@@ -31,7 +36,7 @@ def fetch_contributions():
     """
     variables = {
         "login": USERNAME,
-        "from": START_DATE.isoformat()
+        "from": START_DATE.isoformat() + "T00:00:00Z"
     }
 
     response = requests.post(GRAPHQL_URL, headers=HEADERS, json={
@@ -39,41 +44,42 @@ def fetch_contributions():
         "variables": variables
     })
 
-    # Print raw text response
-    print("Raw response text:\n", response.text)
+    if response.status_code != 200:
+        raise Exception(f"API Error: {response.status_code}\n{response.text}")
 
-    try:
-        data = response.json()
-    except Exception as e:
-        raise Exception(f"Could not decode JSON: {e}\nRaw response: {response.text}")
-
-    # Check for GraphQL errors
+    data = response.json()
+    
     if "errors" in data:
         raise Exception(f"GraphQL Error: {data['errors']}")
-
-    if "data" not in data:
-        raise Exception(f"No 'data' in response: {data}")
-
+    
     try:
         weeks = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
-    except KeyError as e:
-        raise Exception(f"Key error accessing contributions: {e}\nFull data: {data}")
+    except KeyError:
+        raise Exception("Unexpected response structure", data)
 
     contributions = {}
     for week in weeks:
-        for day in week["contributionDays"]:
-            date = day["date"]
-            count = day["contributionCount"]
-            contributions[date] = count
+        for day in week.get("contributionDays", []):
+            date_str = day["date"]
+            try:
+                # Convert to date object for consistent handling
+                date_obj = datetime.date.fromisoformat(date_str)
+                contributions[date_obj] = day["contributionCount"]
+            except ValueError:
+                continue  # Skip invalid dates
 
     return contributions
 
 def calculate_devotion(contributions):
     today = datetime.date.today()
     total_days = (today - START_DATE).days + 1
-    committed_days = sum(1 for date, count in contributions.items() if count > 0)
-    percentage = int((committed_days / total_days) * 100)
-    return percentage
+    
+    # Count days with any contributions
+    committed_days = sum(1 for count in contributions.values() if count > 0)
+    
+    # Ensure we don't divide by zero
+    percentage = int((committed_days / max(total_days, 1)) * 100)
+    return min(percentage, 100)  # Cap at 100%
 
 def get_tier(percentage):
     if percentage >= 90:
@@ -88,7 +94,7 @@ def get_tier(percentage):
         return "💔 **Lost at Sea** – Adrift without my current, begging for just one jolt~"
 
 def generate_svg(percentage, tier):
-    bar_width = int(percentage * 3)
+    bar_width = min(int(percentage * 3), 300)  # Cap width at 300
     svg = f"""<svg width="300" height="60" xmlns="http://www.w3.org/2000/svg">
   <style>
     .bar {{ fill: #A78BFA; }}
@@ -106,7 +112,11 @@ def generate_svg(percentage, tier):
         f.write(svg)
 
 if __name__ == "__main__":
-    contributions = fetch_contributions()
-    devotion = calculate_devotion(contributions)
-    tier = get_tier(devotion)
-    generate_svg(devotion, tier)
+    try:
+        contributions = fetch_contributions()
+        devotion = calculate_devotion(contributions)
+        tier = get_tier(devotion)
+        generate_svg(devotion, tier)
+        print("SVG generated successfully!")
+    except Exception as e:
+        print(f"Error: {str(e)}")
