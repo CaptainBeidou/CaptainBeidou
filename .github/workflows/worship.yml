@@ -40,44 +40,27 @@ jobs:
 
       - name: Update README with Worship Meter
         run: |
-          # Define start and end markers for the replaceable section
           start_marker="> If I miss a day, I owe her 10 cuddles and a foot massage. No exceptions."
           end_marker='```'
-          
-          # Create the new worship meter content
-          new_content="$(cat generated/worship_meter.md)"
-          
-          # Create a temporary file with the new content
-          echo "$new_content" > temp_section.md
-          
-          # Replace only the specific section between markers
-          awk -v new="$(cat temp_section.md)" '
-            /'"$start_marker"'/ { 
-                print; 
-                print new; 
-                skip=1; 
-                next 
-            } 
-            skip && /'"$end_marker"'$/ { 
-                skip=0; 
-                next 
-            } 
-            !skip' README.md > README.tmp && mv README.tmp README.md
-          
-          rm temp_section.md
+          new_content_file="generated/worship_meter.md"
 
-      - name: Commit and Push
-        run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          
-          # Add both files
-          git add generated/worship_meter.md
-          git add README.md
-          
-          # Always commit with timestamp
-          timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
-          git commit -m "update: 💜 Worship Meter - $timestamp" || echo "Commit failed (no changes?)"
-          
-          # Push with force to avoid merge conflicts
-          git push --force || echo "Push skipped"
+          NEW_CONTENT=$(cat "$new_content_file") \
+          awk -v start="$start_marker" -v end="$end_marker" '
+            index($0, start) {
+              print;
+              print ENVIRON["NEW_CONTENT"];
+              skipping=1;
+              fence_count=0;
+              next;
+            }
+            skipping {
+              if ($0 == end) {
+                fence_count++;
+              }
+              if (fence_count == 2) {
+                skipping=0;
+              }
+              next;
+            }
+            !skipping {print}
+          ' README.md > README.tmp && mv README.tmp README.md
