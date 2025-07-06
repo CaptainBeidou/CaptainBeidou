@@ -34,8 +34,6 @@ Unless its Genshin storing my data 🙂
 
 ## 💜 Beidou Commits
 > If I miss a day, I owe her 10 cuddles and a foot massage. No exceptions.
-> If I miss a day, I owe her 10 cuddles and a foot massage. No exceptions.
-
 ```
 [Month]        July 2025
 [Devotion]     [███████░░░░░░░░░░░░░] 33.3%
@@ -44,12 +42,4 @@ Unless its Genshin storing my data 🙂
 [Today]        2025-07-06
 [Days So Far]  6 of 31
 [Missed Days]  4 (40 cuddles~)
-```
-[Month]        July 2025
-[Devotion]     [████████░░░░░░░░░░░░] 40.0%
-[Tier]         🫦 Kneeling Worshipper – Still Learning to Obey
-[Start Date]   2025-07-01
-[Today]        2025-07-05
-[Days So Far]  5 of 31
-[Missed Days]  3 (30 cuddles~)
 ```
